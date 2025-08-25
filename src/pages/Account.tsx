@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 const Account = () => {
   const { user } = useAuth();
@@ -19,6 +21,12 @@ const Account = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    firstName: profile?.first_name || "",
+    lastName: profile?.last_name || "",
+    phone: profile?.phone || "",
+  });
 
   useEffect(() => {
     if (user) {
@@ -34,6 +42,11 @@ const Account = () => {
 
           if (profileError) throw profileError;
           setProfile(profileData as Profile);
+          setEditData({
+            firstName: profileData.first_name || "",
+            lastName: profileData.last_name || "",
+            phone: profileData.phone || "",
+          });
 
           // Fetch addresses
           const { data: addressesData, error: addressesError } = await supabase
@@ -65,6 +78,44 @@ const Account = () => {
     }
   }, [user]);
 
+  const handleSave = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          first_name: editData.firstName,
+          last_name: editData.lastName,
+          phone: editData.phone,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              first_name: editData.firstName,
+              last_name: editData.lastName,
+              phone: editData.phone,
+            }
+          : null
+      );
+      setIsEditing(false);
+      toast({
+        title: "Profile updated!",
+        description: "Your profile information has been saved.",
+      });
+    } catch (error: any) {
+      console.error("Error saving profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderProfile = () => (
     <Card>
       <CardHeader>
@@ -91,15 +142,57 @@ const Account = () => {
                 <p className="text-sm text-muted-foreground">{user?.email}</p>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={profile?.phone || ''}
-                readOnly
-                className="bg-muted"
-              />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={isEditing ? editData.firstName : profile?.first_name || ""}
+                  onChange={(e) => setEditData((prev) => ({ ...prev, firstName: e.target.value }))}
+                  readOnly={!isEditing}
+                  className={!isEditing ? "bg-muted" : ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={isEditing ? editData.lastName : profile?.last_name || ""}
+                  onChange={(e) => setEditData((prev) => ({ ...prev, lastName: e.target.value }))}
+                  readOnly={!isEditing}
+                  className={!isEditing ? "bg-muted" : ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={isEditing ? editData.phone : profile?.phone || ""}
+                  onChange={(e) => setEditData((prev) => ({ ...prev, phone: e.target.value }))}
+                  readOnly={!isEditing}
+                  className={!isEditing ? "bg-muted" : ""}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              {isEditing ? (
+                <>
+                  <Button variant="outline" onClick={() => {
+                    setIsEditing(false);
+                    setEditData({
+                      firstName: profile?.first_name || "",
+                      lastName: profile?.last_name || "",
+                      phone: profile?.phone || "",
+                    });
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave}>Save</Button>
+                </>
+              ) : (
+                <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+              )}
             </div>
           </div>
         )}
