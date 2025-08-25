@@ -22,6 +22,8 @@ const Account = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingAddress, setIsEditingAddress] = useState<string | null>(null);
+  const [editedAddress, setEditedAddress] = useState<Address | null>(null);
   const [editData, setEditData] = useState({
     firstName: profile?.first_name || "",
     lastName: profile?.last_name || "",
@@ -78,7 +80,7 @@ const Account = () => {
     }
   }, [user]);
 
-  const handleSave = async () => {
+  const handleSaveProfile = async () => {
     if (!user) return;
     try {
       const { error } = await supabase
@@ -111,6 +113,34 @@ const Account = () => {
       toast({
         title: "Error",
         description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveAddress = async () => {
+    if (!editedAddress) return;
+    try {
+      const { error } = await supabase
+        .from("addresses")
+        .update(editedAddress)
+        .eq("id", editedAddress.id);
+
+      if (error) throw error;
+      setAddresses((prev) =>
+        prev.map((addr) => (addr.id === editedAddress.id ? editedAddress : addr))
+      );
+      setIsEditingAddress(null);
+      setEditedAddress(null);
+      toast({
+        title: "Address updated!",
+        description: "Your address has been saved.",
+      });
+    } catch (error: any) {
+      console.error("Error saving address:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update address. Please try again.",
         variant: "destructive",
       });
     }
@@ -188,7 +218,7 @@ const Account = () => {
                   }}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSave}>Save</Button>
+                  <Button onClick={handleSaveProfile}>Save</Button>
                 </>
               ) : (
                 <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
@@ -215,11 +245,69 @@ const Account = () => {
         ) : addresses.length > 0 ? (
           addresses.map((address) => (
             <div key={address.id} className="border p-4 rounded-lg space-y-1">
-              <p className="font-semibold">{address.first_name} {address.last_name}</p>
-              <p>{address.address_line_1}</p>
-              {address.address_line_2 && <p>{address.address_line_2}</p>}
-              <p>{address.city}, {address.state} {address.postal_code}</p>
-              <p>{address.country}</p>
+              {isEditingAddress === address.id ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor={`addressLine1-${address.id}`}>Address Line 1</Label>
+                    <Input
+                      id={`addressLine1-${address.id}`}
+                      value={editedAddress?.address_line_1 || ""}
+                      onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, address_line_1: e.target.value } : null)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`city-${address.id}`}>City</Label>
+                      <Input
+                        id={`city-${address.id}`}
+                        value={editedAddress?.city || ""}
+                        onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, city: e.target.value } : null)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`state-${address.id}`}>State</Label>
+                      <Input
+                        id={`state-${address.id}`}
+                        value={editedAddress?.state || ""}
+                        onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, state: e.target.value } : null)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`postalCode-${address.id}`}>Postal Code</Label>
+                      <Input
+                        id={`postalCode-${address.id}`}
+                        value={editedAddress?.postal_code || ""}
+                        onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, postal_code: e.target.value } : null)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-4">
+                    <Button variant="outline" onClick={() => {
+                      setIsEditingAddress(null);
+                      setEditedAddress(null);
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveAddress}>Save</Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold">{address.first_name} {address.last_name}</p>
+                  <p>{address.address_line_1}</p>
+                  {address.address_line_2 && <p>{address.address_line_2}</p>}
+                  <p>{address.city}, {address.state} {address.postal_code}</p>
+                  <p>{address.country}</p>
+                  <div className="flex justify-end">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setIsEditingAddress(address.id);
+                      setEditedAddress(address);
+                    }}>
+                      Edit
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           ))
         ) : (
