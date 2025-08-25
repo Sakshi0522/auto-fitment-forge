@@ -238,6 +238,30 @@ const Account = () => {
     }
   };
 
+  const handleDeleteAddress = async (addressId: string) => {
+    try {
+      const { error } = await supabase
+        .from("addresses")
+        .delete()
+        .eq("id", addressId);
+
+      if (error) throw error;
+
+      setAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
+      toast({
+        title: "Address deleted!",
+        description: "The address has been removed from your account.",
+      });
+    } catch (error: any) {
+      console.error("Error deleting address:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete address. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const renderProfile = () => (
     <Card>
@@ -438,12 +462,20 @@ const Account = () => {
                       {address.address_line_2 && <p>{address.address_line_2}</p>}
                       <p>{address.city}, {address.state} {address.postal_code}</p>
                       <p>{address.country}</p>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end space-x-2">
                         <Button variant="outline" size="sm" onClick={() => {
                           setIsEditingAddress(address.id);
                           setEditedAddress(address);
                         }}>
                           Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteAddress(address.id)}
+                          disabled={addresses.length === 1}
+                        >
+                          Delete
                         </Button>
                       </div>
                     </>
