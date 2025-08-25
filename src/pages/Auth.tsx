@@ -18,10 +18,6 @@ export default function Auth() {
     firstName: '',
     lastName: '',
     phone: '',
-    addressLine1: '',
-    city: '',
-    state: '',
-    postalCode: '',
   });
 
   useEffect(() => {
@@ -42,16 +38,6 @@ export default function Auth() {
           formData.firstName,
           formData.lastName,
           formData.phone,
-          {
-            address_line_1: formData.addressLine1,
-            city: formData.city,
-            state: formData.state,
-            postal_code: formData.postalCode,
-            country: 'US', // Assuming 'US' for now
-            type: 'shipping', // Defaulting to 'shipping' address
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          }
         );
         if (!error) {
           navigate('/');
@@ -136,50 +122,6 @@ export default function Auth() {
                 minLength={6}
               />
             </div>
-
-            {mode === 'signup' && (
-              <div className="space-y-4">
-                <h3 className="font-semibold text-lg mt-6">Shipping Address</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="addressLine1">Address Line 1</Label>
-                  <Input
-                    id="addressLine1"
-                    value={formData.addressLine1}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="postalCode">Postal Code</Label>
-                    <Input
-                      id="postalCode"
-                      value={formData.postalCode}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Please wait...' : (mode === 'signup' ? 'Create Account' : 'Sign In')}
