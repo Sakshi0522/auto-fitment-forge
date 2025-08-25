@@ -9,6 +9,8 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 const Account = () => {
   const { user } = useAuth();
@@ -79,13 +81,25 @@ const Account = () => {
             </div>
           </div>
         ) : (
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback>{profile?.first_name?.[0]}{profile?.last_name?.[0]}</AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-              <p className="text-lg font-medium">{profile?.first_name} {profile?.last_name}</p>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback>{profile?.first_name?.[0]}{profile?.last_name?.[0]}</AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <p className="text-lg font-medium">{profile?.first_name} {profile?.last_name}</p>
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={profile?.phone || ''}
+                readOnly
+                className="bg-muted"
+              />
             </div>
           </div>
         )}
