@@ -22,8 +22,20 @@ const Account = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState<string | null>(null);
   const [editedAddress, setEditedAddress] = useState<Address | null>(null);
+  const [newAddressData, setNewAddressData] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "US",
+  });
   const [editData, setEditData] = useState({
     firstName: profile?.first_name || "",
     lastName: profile?.last_name || "",
@@ -146,6 +158,61 @@ const Account = () => {
     }
   };
 
+  const handleAddNewAddress = async () => {
+    if (!user) return;
+
+    try {
+      const newAddress = {
+        user_id: user.id,
+        type: "shipping",
+        first_name: newAddressData.firstName,
+        last_name: newAddressData.lastName,
+        phone: newAddressData.phone,
+        address_line_1: newAddressData.addressLine1,
+        address_line_2: newAddressData.addressLine2,
+        city: newAddressData.city,
+        state: newAddressData.state,
+        postal_code: newAddressData.postalCode,
+        country: newAddressData.country,
+        is_default: addresses.length === 0, // Set as default if it's the first address
+      };
+
+      const { data, error } = await supabase
+        .from("addresses")
+        .insert(newAddress)
+        .select();
+
+      if (error) throw error;
+
+      if (data) {
+        setAddresses((prev) => [...prev, data[0] as Address]);
+        setNewAddressData({
+          firstName: "",
+          lastName: "",
+          phone: "",
+          addressLine1: "",
+          addressLine2: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          country: "US",
+        });
+        setIsAddingAddress(false);
+        toast({
+          title: "Address added!",
+          description: "Your new address has been saved.",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error adding new address:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add new address. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderProfile = () => (
     <Card>
       <CardHeader>
@@ -242,135 +309,35 @@ const Account = () => {
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
           </div>
-        ) : addresses.length > 0 ? (
-          addresses.map((address) => (
-            <div key={address.id} className="border p-4 rounded-lg space-y-1">
-              {isEditingAddress === address.id ? (
-                <>
+        ) : (
+          <>
+            <div className="flex justify-end">
+              <Button onClick={() => setIsAddingAddress(!isAddingAddress)} variant={isAddingAddress ? "outline" : "default"}>
+                {isAddingAddress ? "Cancel" : "Add New Address"}
+              </Button>
+            </div>
+            {isAddingAddress && (
+              <form onSubmit={(e) => { e.preventDefault(); handleAddNewAddress(); }} className="space-y-4 border p-4 rounded-lg">
+                <h4 className="font-semibold">New Address</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor={`addressLine1-${address.id}`}>Address Line 1</Label>
-                    <Input
-                      id={`addressLine1-${address.id}`}
-                      value={editedAddress?.address_line_1 || ""}
-                      onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, address_line_1: e.target.value } : null)}
-                    />
+                    <Label htmlFor="newFirstName">First Name</Label>
+                    <Input id="newFirstName" value={newAddressData.firstName} onChange={(e) => setNewAddressData({ ...newAddressData, firstName: e.target.value })} required />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor={`city-${address.id}`}>City</Label>
-                      <Input
-                        id={`city-${address.id}`}
-                        value={editedAddress?.city || ""}
-                        onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, city: e.target.value } : null)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={`state-${address.id}`}>State</Label>
-                      <Input
-                        id={`state-${address.id}`}
-                        value={editedAddress?.state || ""}
-                        onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, state: e.target.value } : null)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={`postalCode-${address.id}`}>Postal Code</Label>
-                      <Input
-                        id={`postalCode-${address.id}`}
-                        value={editedAddress?.postal_code || ""}
-                        onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, postal_code: e.target.value } : null)}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newLastName">Last Name</Label>
+                    <Input id="newLastName" value={newAddressData.lastName} onChange={(e) => setNewAddressData({ ...newAddressData, lastName: e.target.value })} required />
                   </div>
-                  <div className="flex justify-end space-x-2 mt-4">
-                    <Button variant="outline" onClick={() => {
-                      setIsEditingAddress(null);
-                      setEditedAddress(null);
-                    }}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSaveAddress}>Save</Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="font-semibold">{address.first_name} {address.last_name}</p>
-                  <p>{address.address_line_1}</p>
-                  {address.address_line_2 && <p>{address.address_line_2}</p>}
-                  <p>{address.city}, {address.state} {address.postal_code}</p>
-                  <p>{address.country}</p>
-                  <div className="flex justify-end">
-                    <Button variant="outline" size="sm" onClick={() => {
-                      setIsEditingAddress(address.id);
-                      setEditedAddress(address);
-                    }}>
-                      Edit
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))
-        ) : (
-          <p className="text-muted-foreground">No addresses found.</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  const renderOrderHistory = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Order History</CardTitle>
-        <CardDescription>View your past orders and their status.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        ) : orders.length > 0 ? (
-          orders.map((order) => (
-            <div key={order.id} className="border p-4 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold">Order #{order.order_number}</h4>
-                <Badge variant="secondary">{order.status}</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">Total: ${order.total.toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground">Date: {new Date(order.created_at).toLocaleDateString()}</p>
-            </div>
-          ))
-        ) : (
-          <p className="text-muted-foreground">No orders found.</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">My Account</h1>
-          <Link to="/" className="text-sm text-primary hover:underline">
-            ← Back to Home
-          </Link>
-        </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="addresses">Addresses</TabsTrigger>
-            <TabsTrigger value="orders">Order History</TabsTrigger>
-          </TabsList>
-          <TabsContent value="profile">{renderProfile()}</TabsContent>
-          <TabsContent value="addresses">{renderAddresses()}</TabsContent>
-          <TabsContent value="orders">{renderOrderHistory()}</TabsContent>
-        </Tabs>
-      </main>
-      <Footer />
-    </div>
-  );
-};
-
-export default Account;
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newAddressLine1">Address Line 1</Label>
+                  <Input id="newAddressLine1" value={newAddressData.addressLine1} onChange={(e) => setNewAddressData({ ...newAddressData, addressLine1: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newAddressLine2">Address Line 2 (Optional)</Label>
+                  <Input id="newAddressLine2" value={newAddressData.addressLine2} onChange={(e) => setNewAddressData({ ...newAddressData, addressLine2: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newCity">City</Label>
+                    <Input id="newCity" value={newAddressData.city} onChange={(e) => setNewAddressData({ ...newAddressData, city: e.target.value })} required />
