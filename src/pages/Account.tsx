@@ -520,4 +520,128 @@ const Account = () => {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-postalCode`}>
+                              <Label htmlFor={`edit-${address.id}-postalCode`}>Postal Code</Label>
+                              <Input
+                                id={`edit-${address.id}-postalCode`}
+                                value={editedAddress?.postal_code || ""}
+                                onChange={(e) => setEditedAddress({ ...editedAddress!, postal_code: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor={`edit-${address.id}-phone`}>Phone (Optional)</Label>
+                              <Input
+                                id={`edit-${address.id}-phone`}
+                                value={editedAddress?.phone || ""}
+                                onChange={(e) => setEditedAddress({ ...editedAddress!, phone: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end space-x-2 mt-4">
+                            <Button variant="outline" onClick={() => setIsEditingAddress(null)}>Cancel</Button>
+                            <Button onClick={handleSaveAddress}>Save</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <h4 className="font-semibold">
+                              {address.first_name} {address.last_name}
+                            </h4>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setIsEditingAddress(address.id);
+                                  setEditedAddress(address);
+                                }}
+                              >
+                                Edit
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {address.address_line_1}
+                          </p>
+                          {address.address_line_2 && (
+                            <p className="text-sm text-muted-foreground">
+                              {address.address_line_2}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground">
+                            {address.city}, {address.state} {address.postal_code}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {address.country}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="orders" className="mt-4">
+            <h2 className="text-2xl font-bold mb-4">My Orders</h2>
+            {loading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="flex justify-between">
+                        <Skeleton className="h-5 w-1/4" />
+                        <Skeleton className="h-5 w-1/6" />
+                      </div>
+                      <Skeleton className="h-4 w-1/3" />
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : orders.length === 0 ? (
+              <p className="text-muted-foreground text-center mt-8">
+                You have not placed any orders yet.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((order) => (
+                  <Card key={order.id}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-base font-medium">
+                        Order #{order.order_number}
+                      </CardTitle>
+                      <Badge variant="secondary">
+                        {order.status}
+                      </Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Date: {new Date(order.created_at).toLocaleDateString()}
+                      </p>
+                      <p className="text-xl font-bold mt-2">
+                        Total: ${order.total.toFixed(2)}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Items: {order.items.length}
+                      </p>
+                      <Button asChild variant="link" className="p-0 mt-2">
+                        <Link to={`/orders/${order.id}`}>View Details</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
+      <Footer />
+    </>
+  );
+};
+
+export default Account;
