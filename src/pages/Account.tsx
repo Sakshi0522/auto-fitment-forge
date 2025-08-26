@@ -22,6 +22,7 @@ const Account = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState<string | null>(null);
   const [editedAddress, setEditedAddress] = useState<Address | null>(null);
@@ -52,14 +53,29 @@ const Account = () => {
             .from("profiles")
             .select("*")
             .eq("id", user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError) throw profileError;
-          setProfile(profileData as Profile);
+
+          let currentProfile = profileData as Profile | null;
+
+          if (!currentProfile) {
+            // If no profile found, create a new one
+            const { data: newProfileData, error: newProfileError } = await supabase
+              .from("profiles")
+              .insert({ id: user.id })
+              .select()
+              .single();
+
+            if (newProfileError) throw newProfileError;
+            currentProfile = newProfileData as Profile;
+          }
+          
+          setProfile(currentProfile);
           setEditData({
-            firstName: profileData.first_name || "",
-            lastName: profileData.last_name || "",
-            phone: profileData.phone || "",
+            firstName: currentProfile?.first_name || "",
+            lastName: currentProfile?.last_name || "",
+            phone: currentProfile?.phone || "",
           });
 
           // Fetch addresses
@@ -120,6 +136,7 @@ const Account = () => {
       }
 
       setProfile(data[0] as Profile);
+      setIsEditing(false);
       toast({
         title: "Profile updated!",
         description: "Your profile information has been saved.",
@@ -242,16 +259,6 @@ const Account = () => {
     }
   };
 
-  const handleResetProfile = () => {
-    if (profile) {
-      setEditData({
-        firstName: profile.first_name || "",
-        lastName: profile.last_name || "",
-        phone: profile.phone || "",
-      });
-    }
-  };
-
   return (
     <>
       <Header />
@@ -300,34 +307,72 @@ const Account = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        value={editData.firstName}
-                        onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        value={editData.lastName}
-                        onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        value={editData.phone}
-                        onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                      />
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={handleResetProfile}>Reset</Button>
-                      <Button onClick={handleSaveProfile}>Save</Button>
-                    </div>
+                    {isEditing ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input
+                            id="firstName"
+                            value={editData.firstName}
+                            onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input
+                            id="lastName"
+                            value={editData.lastName}
+                            onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone</Label>
+                          <Input
+                            id="phone"
+                            value={editData.phone}
+                            onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => {
+                            setIsEditing(false);
+                            // Reset editData to the current profile values on cancel
+                            if (profile) {
+                              setEditData({
+                                firstName: profile.first_name || "",
+                                lastName: profile.last_name || "",
+                                phone: profile.phone || "",
+                              });
+                            }
+                          }}>Cancel</Button>
+                          <Button onClick={handleSaveProfile}>Save</Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label>First Name</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.first_name || "Not set"}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Name</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.last_name || "Not set"}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Phone</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.phone || "Not set"}
+                          </p>
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
