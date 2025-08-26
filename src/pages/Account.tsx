@@ -233,3 +233,76 @@ const { data: addressesData, error: fetchError } = await supabase
 
       toast({
         title: "Address added!",
+        description: "Your new address has been saved.",
+      });
+    } catch (error) { 
+      console.error("Error adding new address:", error);
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to add new address. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDeleteAddress = async (addressId: string) => {
+    try {
+      const { error } = await supabase
+        .from("addresses")
+        .delete()
+        .eq("id", addressId);
+
+      if (error) throw error;
+
+      setAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
+      toast({
+        title: "Address deleted!",
+        description: "The address has been removed from your account.",
+      });
+    } catch (error) { 
+      console.error("Error deleting address:", error);
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete address. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  }
+  function renderProfile() {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>View and manage your personal details.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? (
+            <div className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback>{profile?.first_name?.[0]}{profile?.last_name?.[0]}</AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <p className="text-lg font-medium">{profile?.first_name} {profile?.last_name}</p>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={isEditing ? editData.firstName : profile?.first_name || ""}
+                    onChange={(e
