@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthError } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -7,6 +8,7 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener first
@@ -134,6 +136,9 @@ export function useAuth() {
         title: "Signed out",
         description: "You have been signed out successfully.",
       });
+
+      // Redirect to the homepage after successful sign out
+      navigate('/');
     } catch (error) {
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
       toast({
