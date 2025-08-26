@@ -52,7 +52,7 @@ export function useAuth() {
       });
 
       return { error: null };
-    } catch (error) { // No longer `error: any`
+    } catch (error) {
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
       toast({
         title: "Sign up failed",
@@ -63,14 +63,31 @@ export function useAuth() {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, isAdminLogin: boolean = false) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // Check for admin role if the flag is set
+      if (isAdminLogin && data.user) {
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+
+        if (roleError) throw roleError;
+        
+        if (!roleData) {
+          await supabase.auth.signOut();
+          throw new Error("You do not have administrative privileges.");
+        }
+      }
 
       toast({
         title: "Welcome back!",
@@ -78,7 +95,7 @@ export function useAuth() {
       });
 
       return { error: null };
-    } catch (error) { // No longer `error: any`
+    } catch (error) {
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
       toast({
         title: "Sign in failed",
@@ -99,7 +116,7 @@ export function useAuth() {
         title: "Signed out",
         description: "You have been signed out successfully.",
       });
-    } catch (error) { // No longer `error: any`
+    } catch (error) {
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
       toast({
         title: "Sign out failed",
