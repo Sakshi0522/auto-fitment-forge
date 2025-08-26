@@ -28,7 +28,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string, isAdmin: boolean = false) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string) => {
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -43,14 +43,6 @@ export function useAuth() {
 
       if (signUpError) throw signUpError;
       
-      // If the admin flag is set, use the RPC function to update the user's role.
-      // This is a secure way to change roles from the client-side.
-      if (isAdmin && data.user) {
-        const { error: roleError } = await supabase.rpc('update_user_role', { _user_id: data.user.id, _new_role: 'admin' });
-        
-        if (roleError) throw roleError;
-      }
-
       toast({
         title: "Account created!",
         description: "You have been signed in successfully.",
@@ -75,7 +67,16 @@ export function useAuth() {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Return a detailed error message from the Supabase API call.
+        const errorMessage = error.message || "An unknown error occurred.";
+        toast({
+          title: "Sign in failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return { error };
+      }
 
       // Check for admin role if the flag is set
       if (isAdminLogin && data.user) {
@@ -86,11 +87,23 @@ export function useAuth() {
           .eq('role', 'admin')
           .maybeSingle();
 
-        if (roleError) throw roleError;
+        if (roleError) {
+          toast({
+            title: "Permission check failed",
+            description: roleError.message,
+            variant: "destructive",
+          });
+          return { error: roleError };
+        }
         
         if (!roleData) {
           await supabase.auth.signOut();
-          throw new Error("You do not have administrative privileges.");
+          toast({
+            title: "Access Denied",
+            description: "You do not have administrative privileges.",
+            variant: "destructive",
+          });
+          return { error: new Error("You do not have administrative privileges.") };
         }
       }
 
