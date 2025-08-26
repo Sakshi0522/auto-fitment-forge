@@ -159,23 +159,39 @@ const Account = () => {
       });
     } catch (error) {
       console.error("Error saving address:", error);
-      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
       toast({
         title: "Error",
-        description: `Failed to update address: ${errorMessage}`,
+        description: "Failed to update address. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const handleAddAddress = async () => {
-    if (!user) return;
+  const handleAddNewAddress = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be signed in to add an address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newAddressData.firstName || !newAddressData.lastName || !newAddressData.addressLine1 || !newAddressData.city || !newAddressData.state || !newAddressData.postalCode) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from("addresses")
         .insert({
           user_id: user.id,
-          type: 'shipping',
+          type: "shipping",
           first_name: newAddressData.firstName,
           last_name: newAddressData.lastName,
           phone: newAddressData.phone,
@@ -185,18 +201,22 @@ const Account = () => {
           state: newAddressData.state,
           postal_code: newAddressData.postalCode,
           country: newAddressData.country,
+          is_default: addresses.length === 0,
         });
 
-      if (error) throw error;
-      
-      // Refresh addresses
-      const { data: addressesData } = await supabase
+      if (error) {
+        throw error;
+      }
+      const { data: addressesData, error: fetchError } = await supabase
         .from("addresses")
         .select("*")
         .eq("user_id", user.id);
-      
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
       setAddresses(addressesData as Address[]);
-      setIsAddingAddress(false);
       setNewAddressData({
         firstName: "",
         lastName: "",
@@ -208,18 +228,21 @@ const Account = () => {
         postalCode: "",
         country: "US",
       });
+      setIsAddingAddress(false);
+
       toast({
         title: "Address added!",
         description: "Your new address has been saved.",
       });
     } catch (error) {
-      console.error("Error adding address:", error);
-      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
-      toast({
-        title: "Error",
-        description: `Failed to add address: ${errorMessage}`,
-        variant: "destructive",
-      });
+      console.error("Error adding new address:", error);
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to add new address. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -231,386 +254,199 @@ const Account = () => {
         .eq("id", addressId);
 
       if (error) throw error;
+
       setAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
       toast({
         title: "Address deleted!",
-        description: "Your address has been removed.",
+        description: "The address has been removed from your account.",
       });
     } catch (error) {
       console.error("Error deleting address:", error);
-      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
-      toast({
-        title: "Error",
-        description: `Failed to delete address: ${errorMessage}`,
-        variant: "destructive",
-      });
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete address. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
-  };
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Please sign in to view your account</h1>
-            <Link to="/auth" className="text-primary hover:underline">
-              Go to Sign In
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
   }
-
-  if (loading) {
+  function renderProfile() {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <Skeleton className="h-8 w-48" />
-            <div className="grid gap-6">
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>View and manage your personal details.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? (
+            <div className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
             </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback>{profile?.first_name?.[0]}{profile?.last_name?.[0]}</AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <p className="text-lg font-medium">{profile?.first_name} {profile?.last_name}</p>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={isEditing ? editData.firstName : profile?.first_name || ""}
+                    onChange={(e) => setEditData((prev) => ({ ...prev, firstName: e.target.value }))}
+                    readOnly={!isEditing}
+                    className={!isEditing ? "bg-muted" : ""} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={isEditing ? editData.lastName : profile?.last_name || ""}
+                    onChange={(e) => setEditData((prev) => ({ ...prev, lastName: e.target.value }))}
+                    readOnly={!isEditing}
+                    className={!isEditing ? "bg-muted" : ""} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={isEditing ? editData.phone : profile?.phone || ""}
+                    onChange={(e) => setEditData((prev) => ({ ...prev, phone: e.target.value }))}
+                    readOnly={!isEditing}
+                    className={!isEditing ? "bg-muted" : ""} />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                {isEditing ? (
+                  <>
+                    <Button variant="outline" onClick={() => {
+                      setIsEditing(false);
+                      setEditData({
+                        firstName: profile?.first_name || "",
+                        lastName: profile?.last_name || "",
+                        phone: profile?.phone || "",
+                      });
+                    } }>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveProfile}>Save</Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">My Account</h1>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="addresses">Addresses</TabsTrigger>
-              <TabsTrigger value="orders">Orders</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="profile" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                      <AvatarFallback className="text-lg">
-                        {profile?.first_name?.[0]}{profile?.last_name?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h2 className="text-xl">Profile Information</h2>
-                      <p className="text-muted-foreground">{user.email}</p>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isEditing ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input
-                            id="firstName"
-                            value={editData.firstName}
-                            onChange={(e) => setEditData({...editData, firstName: e.target.value})}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input
-                            id="lastName"
-                            value={editData.lastName}
-                            onChange={(e) => setEditData({...editData, lastName: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="phone">Phone</Label>
+  const renderAddresses = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>My Addresses</CardTitle>
+        <CardDescription>Manage your shipping and billing addresses.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-end">
+              <Button onClick={() => setIsAddingAddress(!isAddingAddress)} variant={isAddingAddress ? "outline" : "default"}>
+                {isAddingAddress ? "Cancel" : "Add New Address"}
+              </Button>
+            </div>
+            {isAddingAddress && (
+              <form onSubmit={(e) => { e.preventDefault(); handleAddNewAddress(); }} className="space-y-4 border p-4 rounded-lg">
+                <h4 className="font-semibold">New Address</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newFirstName">First Name</Label>
+                    <Input id="newFirstName" value={newAddressData.firstName} onChange={(e) => setNewAddressData({ ...newAddressData, firstName: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newLastName">Last Name</Label>
+                    <Input id="newLastName" value={newAddressData.lastName} onChange={(e) => setNewAddressData({ ...newAddressData, lastName: e.target.value })} required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newAddressLine1">Address Line 1</Label>
+                  <Input id="newAddressLine1" value={newAddressData.addressLine1} onChange={(e) => setNewAddressData({ ...newAddressData, addressLine1: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newAddressLine2">Address Line 2 (Optional)</Label>
+                  <Input id="newAddressLine2" value={newAddressData.addressLine2} onChange={(e) => setNewAddressData({ ...newAddressData, addressLine2: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newCity">City</Label>
+                    <Input id="newCity" value={newAddressData.city} onChange={(e) => setNewAddressData({ ...newAddressData, city: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newState">State</Label>
+                    <Input id="newState" value={newAddressData.state} onChange={(e) => setNewAddressData({ ...newAddressData, state: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPostalCode">Postal Code</Label>
+                    <Input id="newPostalCode" value={newAddressData.postalCode} onChange={(e) => setNewAddressData({ ...newAddressData, postalCode: e.target.value })} required />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button type="submit">Save Address</Button>
+                </div>
+              </form>
+            )}
+            {addresses.length > 0 ? (
+              addresses.map((address) => (
+                <div key={address.id} className="border p-4 rounded-lg space-y-1">
+                  {isEditingAddress === address.id ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor={`addressLine1-${address.id}`}>Address Line 1</Label>
                         <Input
-                          id="phone"
-                          value={editData.phone}
-                          onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                          id={`addressLine1-${address.id}`}
+                          value={editedAddress?.address_line_1 || ""}
+                          onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, address_line_1: e.target.value } : null)}
                         />
                       </div>
-                      <div className="flex gap-2">
-                        <Button onClick={handleSaveProfile}>Save Changes</Button>
-                        <Button variant="outline" onClick={() => setIsEditing(false)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>First Name</Label>
-                          <p className="text-sm text-muted-foreground">
-                            {profile?.first_name || "Not set"}
-                          </p>
-                        </div>
-                        <div>
-                          <Label>Last Name</Label>
-                          <p className="text-sm text-muted-foreground">
-                            {profile?.last_name || "Not set"}
-                          </p>
-                        </div>
-                      </div>
-                      <div>
-                        <Label>Phone</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {profile?.phone || "Not set"}
-                        </p>
-                      </div>
-                      <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="addresses" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex justify-between items-center">
-                    <span>Saved Addresses</span>
-                    <Button onClick={() => setIsAddingAddress(true)}>
-                      Add New Address
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {addresses.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">
-                      No addresses saved yet
-                    </p>
-                  ) : (
-                    addresses.map((address) => (
-                      <Card key={address.id} className="p-4">
-                        {isEditingAddress === address.id ? (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label>First Name</Label>
-                                <Input
-                                  value={editedAddress?.first_name || ""}
-                                  onChange={(e) => setEditedAddress(prev => prev ? {...prev, first_name: e.target.value} : null)}
-                                />
-                              </div>
-                              <div>
-                                <Label>Last Name</Label>
-                                <Input
-                                  value={editedAddress?.last_name || ""}
-                                  onChange={(e) => setEditedAddress(prev => prev ? {...prev, last_name: e.target.value} : null)}
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <Label>Address Line 1</Label>
-                              <Input
-                                value={editedAddress?.address_line_1 || ""}
-                                onChange={(e) => setEditedAddress(prev => prev ? {...prev, address_line_1: e.target.value} : null)}
-                              />
-                            </div>
-                            <div className="flex gap-2">
-                              <Button onClick={handleSaveAddress}>Save</Button>
-                              <Button variant="outline" onClick={() => {
-                                setIsEditingAddress(null);
-                                setEditedAddress(null);
-                              }}>
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="font-medium">
-                                  {address.first_name} {address.last_name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {address.address_line_1}
-                                </p>
-                                {address.address_line_2 && (
-                                  <p className="text-sm text-muted-foreground">
-                                    {address.address_line_2}
-                                  </p>
-                                )}
-                                <p className="text-sm text-muted-foreground">
-                                  {address.city}, {address.state} {address.postal_code}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {address.country}
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setIsEditingAddress(address.id);
-                                    setEditedAddress(address);
-                                  }}
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteAddress(address.id)}
-                                >
-                                  Delete
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </Card>
-                    ))
-                  )}
-                  
-                  {isAddingAddress && (
-                    <Card className="p-4">
-                      <div className="space-y-4">
-                        <h3 className="font-medium">Add New Address</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>First Name</Label>
-                            <Input
-                              value={newAddressData.firstName}
-                              onChange={(e) => setNewAddressData({...newAddressData, firstName: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label>Last Name</Label>
-                            <Input
-                              value={newAddressData.lastName}
-                              onChange={(e) => setNewAddressData({...newAddressData, lastName: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Phone</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`city-${address.id}`}>City</Label>
                           <Input
-                            value={newAddressData.phone}
-                            onChange={(e) => setNewAddressData({...newAddressData, phone: e.target.value})}
+                            id={`city-${address.id}`}
+                            value={editedAddress?.city || ""}
+                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, city: e.target.value } : null)}
                           />
                         </div>
-                        <div>
-                          <Label>Address Line 1</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor={`state-${address.id}`}>State</Label>
                           <Input
-                            value={newAddressData.addressLine1}
-                            onChange={(e) => setNewAddressData({...newAddressData, addressLine1: e.target.value})}
+                            id={`state-${address.id}`}
+                            value={editedAddress?.state || ""}
+                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, state: e.target.value } : null)}
                           />
                         </div>
-                        <div>
-                          <Label>Address Line 2 (Optional)</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor={`postalCode-${address.id}`}>Postal Code</Label>
                           <Input
-                            value={newAddressData.addressLine2}
-                            onChange={(e) => setNewAddressData({...newAddressData, addressLine2: e.target.value})}
+                            id={`postalCode-${address.id}`}
+                            value={editedAddress?.postal_code || ""}
+                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, postal_code: e.target.value } : null)}
                           />
-                        </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <Label>City</Label>
-                            <Input
-                              value={newAddressData.city}
-                              onChange={(e) => setNewAddressData({...newAddressData, city: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label>State</Label>
-                            <Input
-                              value={newAddressData.state}
-                              onChange={(e) => setNewAddressData({...newAddressData, state: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label>Postal Code</Label>
-                            <Input
-                              value={newAddressData.postalCode}
-                              onChange={(e) => setNewAddressData({...newAddressData, postalCode: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button onClick={handleAddAddress}>Add Address</Button>
-                          <Button variant="outline" onClick={() => setIsAddingAddress(false)}>
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="orders" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order History</CardTitle>
-                  <CardDescription>View your past orders and their status</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {orders.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">
-                      No orders found
-                    </p>
-                  ) : (
-                    <div className="space-y-4">
-                      {orders.map((order) => (
-                        <Card key={order.id} className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium">Order #{order.id}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(order.created_at).toLocaleDateString()}
-                              </p>
-                              <div className="mt-2">
-                                <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
-                                  {order.status}
-                                </Badge>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-medium">${order.total}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {order.items?.length || 0} items
-                              </p>
-                            </div>
-                          </div>
-                          {order.items && order.items.length > 0 && (
-                            <div className="mt-4 space-y-2">
-                              {order.items.map((item, index) => (
-                                <div key={index} className="flex justify-between text-sm">
-                                  <span>{item.product?.title || `Product ${item.product_id}`}</span>
-                                  <span>{item.quantity} × ${item.price}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
-      <Footer />
-    </div>
-  );
-};
-
-export default Account;
