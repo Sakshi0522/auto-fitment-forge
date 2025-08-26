@@ -1,28 +1,30 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, signIn, signUp } = useAuth();
-  const [mode, setMode] = useState(searchParams.get('mode') === 'signup' ? 'signup' : 'signin');
+  const [mode, setMode] = useState(searchParams.get("mode") === "signup" ? "signup" : "signin");
   const [loading, setLoading] = useState(false);
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
   });
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate("/");
     }
   }, [user, navigate]);
 
@@ -31,7 +33,7 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (mode === 'signup') {
+      if (mode === "signup") {
         const { error } = await signUp(
           formData.email,
           formData.password,
@@ -40,10 +42,10 @@ export default function Auth() {
           formData.phone
         );
         if (!error) {
-          navigate('/');
+          navigate("/");
         }
       } else {
-        await signIn(formData.email, formData.password);
+        await signIn(formData.email, formData.password, isAdminLogin);
       }
     } finally {
       setLoading(false);
@@ -59,36 +61,50 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>{mode === 'signup' ? 'Create Account' : 'Sign In'}</CardTitle>
+          <CardTitle>{mode === "signup" ? "Create Account" : "Sign In"}</CardTitle>
           <CardDescription>
-            {mode === 'signup'
-              ? 'Create your account to start shopping'
-              : 'Welcome back! Sign in to your account'
+            {mode === "signup"
+              ? "Create your account to start shopping"
+              : "Welcome back! Sign in to your account"
             }
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
+            {mode === "signup" && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number (Optional)</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -102,16 +118,6 @@ export default function Auth() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number (Optional)</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
@@ -122,21 +128,32 @@ export default function Auth() {
                 minLength={6}
               />
             </div>
+            
+            {mode === "signin" && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isAdmin"
+                  checked={isAdminLogin}
+                  onCheckedChange={(checked) => setIsAdminLogin(Boolean(checked))}
+                />
+                <Label htmlFor="isAdmin">Admin Login</Label>
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Please wait...' : (mode === 'signup' ? 'Create Account' : 'Sign In')}
+              {loading ? "Please wait..." : (mode === "signup" ? "Create Account" : "Sign In")}
             </Button>
           </form>
 
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
-              {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
+              {mode === "signup" ? "Already have an account?" : "Don't have an account?"}
               <Button
                 variant="link"
                 className="p-0"
-                onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
+                onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
               >
-                {mode === 'signup' ? 'Sign in' : 'Sign up'}
+                {mode === "signup" ? "Sign in" : "Sign up"}
               </Button>
             </p>
           </div>
