@@ -102,45 +102,23 @@ const Account = () => {
 
   const handleSaveProfile = async () => {
     if (!user) return;
-
     try {
-      // Build an update payload with only the changed values
-      const updatePayload: Partial<Profile> = {};
-      if (editData.firstName !== (profile?.first_name || "")) {
-        updatePayload.first_name = editData.firstName;
-      }
-      if (editData.lastName !== (profile?.last_name || "")) {
-        updatePayload.last_name = editData.lastName;
-      }
-      if (editData.phone !== (profile?.phone || "")) {
-        updatePayload.phone = editData.phone;
-      }
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({
+          first_name: editData.firstName,
+          last_name: editData.lastName,
+          phone: editData.phone,
+        })
+        .eq("id", user.id).select();
 
-      // Only perform an update if there are changes
-      if (Object.keys(updatePayload).length > 0) {
-        const { data, error } = await supabase
-          .from("profiles")
-          .update(updatePayload)
-          .eq("id", user.id)
-          .select();
-
-        if (error) {
-          throw error;
-        }
-
-        setProfile(data[0] as Profile);
-        toast({
-          title: "Profile updated!",
-          description: "Your profile information has been saved.",
-        });
-      } else {
-        toast({
-          title: "No changes detected",
-          description: "Your profile is already up-to-date.",
-        });
-      }
-
+      if (error) throw error;
+      setProfile(data[0] as Profile);
       setIsEditing(false);
+      toast({
+        title: "Profile updated!",
+        description: "Your profile information has been saved.",
+      });
     } catch (error) {
       console.error("Error saving profile:", error);
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
@@ -235,3 +213,17 @@ const Account = () => {
         lastName: "",
         phone: "",
         addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "US",
+      });
+      setIsAddingAddress(false);
+
+      toast({
+        title: "Address added!",
+        description: "Your new address has been saved.",
+      });
+    } catch (error) {
+      console.error("Error adding new address
