@@ -129,7 +129,7 @@ const Account = () => {
         title: "Profile updated!",
         description: "Your profile information has been saved.",
       });
-    } catch (error) { // Fix: removed : any
+    } catch (error) { 
       console.error("Error saving profile:", error);
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
       toast({
@@ -143,3 +143,93 @@ const Account = () => {
   const handleSaveAddress = async () => {
     if (!editedAddress) return;
     try {
+      const { error } = await supabase
+        .from("addresses")
+        .update(editedAddress)
+        .eq("id", editedAddress.id);
+
+      if (error) throw error;
+      setAddresses((prev) =>
+        prev.map((addr) => (addr.id === editedAddress.id ? editedAddress : addr))
+      );
+      setIsEditingAddress(null);
+      setEditedAddress(null);
+      toast({
+        title: "Address updated!",
+        description: "Your address has been saved.",
+      });
+    } catch (error) {
+      console.error("Error saving address:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update address. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddNewAddress = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be signed in to add an address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newAddressData.firstName || !newAddressData.lastName || !newAddressData.addressLine1 || !newAddressData.city || !newAddressData.state || !newAddressData.postalCode) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("addresses")
+        .insert({
+          user_id: user.id,
+          type: "shipping",
+          first_name: newAddressData.firstName,
+          last_name: newAddressData.lastName,
+          phone: newAddressData.phone,
+          address_line_1: newAddressData.addressLine1,
+          address_line_2: newAddressData.addressLine2,
+          city: newAddressData.city,
+          state: newAddressData.state,
+          postal_code: newAddressData.postalCode,
+          country: newAddressData.country,
+          is_default: addresses.length === 0,
+        });
+
+      if (error) {
+        throw error;
+      }
+const { data: addressesData, error: fetchError } = await supabase
+        .from("addresses")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      setAddresses(addressesData as Address[]);
+      setNewAddressData({
+        firstName: "",
+        lastName: "",
+        phone: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "US",
+      });
+      setIsAddingAddress(false);
+
+      toast({
+        title: "Address added!",
