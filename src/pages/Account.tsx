@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Profile, Address, Order, CartItem } from "@/types"; // Make sure CartItem is imported
+import { Profile, Address, Order, CartItem } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/layout/Header";
@@ -81,13 +81,13 @@ const Account = () => {
 
           if (ordersError) throw ordersError;
           
-          // Fix: Safely convert the items from Json to CartItem[]
+          // Safely convert the items from Json to CartItem[]
           const ordersWithItems = ordersData.map(order => ({
             ...order,
             items: order.items as unknown as CartItem[]
           }));
           
-          setOrders(ordersWithItems as unknown as  Order[]);
+          setOrders(ordersWithItems as unknown as Order[]);
 
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -103,26 +103,17 @@ const Account = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .update({
           first_name: editData.firstName,
           last_name: editData.lastName,
           phone: editData.phone,
         })
-        .eq("id", user.id);
+        .eq("id", user.id).select();
 
       if (error) throw error;
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              first_name: editData.firstName,
-              last_name: editData.lastName,
-              phone: editData.phone,
-            }
-          : null
-      );
+      setProfile(data[0] as Profile);
       setIsEditing(false);
       toast({
         title: "Profile updated!",
@@ -210,243 +201,4 @@ const Account = () => {
       const { data: addressesData, error: fetchError } = await supabase
         .from("addresses")
         .select("*")
-        .eq("user_id", user.id);
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      setAddresses(addressesData as Address[]);
-      setNewAddressData({
-        firstName: "",
-        lastName: "",
-        phone: "",
-        addressLine1: "",
-        addressLine2: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "US",
-      });
-      setIsAddingAddress(false);
-
-      toast({
-        title: "Address added!",
-        description: "Your new address has been saved.",
-      });
-    } catch (error) {
-      console.error("Error adding new address:", error);
-      if (error instanceof Error) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to add new address. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const handleDeleteAddress = async (addressId: string) => {
-    try {
-      const { error } = await supabase
-        .from("addresses")
-        .delete()
-        .eq("id", addressId);
-
-      if (error) throw error;
-
-      setAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
-      toast({
-        title: "Address deleted!",
-        description: "The address has been removed from your account.",
-      });
-    } catch (error) {
-      console.error("Error deleting address:", error);
-      if (error instanceof Error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete address. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  }
-  function renderProfile() {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>View and manage your personal details.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {loading ? (
-            <div className="flex items-center space-x-4">
-              <Skeleton className="h-12 w-12 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-[250px]" />
-                <Skeleton className="h-4 w-[200px]" />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback>{profile?.first_name?.[0]}{profile?.last_name?.[0]}</AvatarFallback>
-                </Avatar>
-                <div className="space-y-1">
-                  <p className="text-lg font-medium">{profile?.first_name} {profile?.last_name}</p>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
-                </div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    value={isEditing ? editData.firstName : profile?.first_name || ""}
-                    onChange={(e) => setEditData((prev) => ({ ...prev, firstName: e.target.value }))}
-                    readOnly={!isEditing}
-                    className={!isEditing ? "bg-muted" : ""} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    value={isEditing ? editData.lastName : profile?.last_name || ""}
-                    onChange={(e) => setEditData((prev) => ({ ...prev, lastName: e.target.value }))}
-                    readOnly={!isEditing}
-                    className={!isEditing ? "bg-muted" : ""} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={isEditing ? editData.phone : profile?.phone || ""}
-                    onChange={(e) => setEditData((prev) => ({ ...prev, phone: e.target.value }))}
-                    readOnly={!isEditing}
-                    className={!isEditing ? "bg-muted" : ""} />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2">
-                {isEditing ? (
-                  <>
-                    <Button variant="outline" onClick={() => {
-                      setIsEditing(false);
-                      setEditData({
-                        firstName: profile?.first_name || "",
-                        lastName: profile?.last_name || "",
-                        phone: profile?.phone || "",
-                      });
-                    } }>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSaveProfile}>Save</Button>
-                  </>
-                ) : (
-                  <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const renderAddresses = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>My Addresses</CardTitle>
-        <CardDescription>Manage your shipping and billing addresses.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        ) : (
-          <>
-            <div className="flex justify-end">
-              <Button onClick={() => setIsAddingAddress(!isAddingAddress)} variant={isAddingAddress ? "outline" : "default"}>
-                {isAddingAddress ? "Cancel" : "Add New Address"}
-              </Button>
-            </div>
-            {isAddingAddress && (
-              <form onSubmit={(e) => { e.preventDefault(); handleAddNewAddress(); }} className="space-y-4 border p-4 rounded-lg">
-                <h4 className="font-semibold">New Address</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="newFirstName">First Name</Label>
-                    <Input id="newFirstName" value={newAddressData.firstName} onChange={(e) => setNewAddressData({ ...newAddressData, firstName: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="newLastName">Last Name</Label>
-                    <Input id="newLastName" value={newAddressData.lastName} onChange={(e) => setNewAddressData({ ...newAddressData, lastName: e.target.value })} required />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newAddressLine1">Address Line 1</Label>
-                  <Input id="newAddressLine1" value={newAddressData.addressLine1} onChange={(e) => setNewAddressData({ ...newAddressData, addressLine1: e.target.value })} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newAddressLine2">Address Line 2 (Optional)</Label>
-                  <Input id="newAddressLine2" value={newAddressData.addressLine2} onChange={(e) => setNewAddressData({ ...newAddressData, addressLine2: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="newCity">City</Label>
-                    <Input id="newCity" value={newAddressData.city} onChange={(e) => setNewAddressData({ ...newAddressData, city: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="newState">State</Label>
-                    <Input id="newState" value={newAddressData.state} onChange={(e) => setNewAddressData({ ...newAddressData, state: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="newPostalCode">Postal Code</Label>
-                    <Input id="newPostalCode" value={newAddressData.postalCode} onChange={(e) => setNewAddressData({ ...newAddressData, postalCode: e.target.value })} required />
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button type="submit">Save Address</Button>
-                </div>
-              </form>
-            )}
-            {addresses.length > 0 ? (
-              addresses.map((address) => (
-                <div key={address.id} className="border p-4 rounded-lg space-y-1">
-                  {isEditingAddress === address.id ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor={`addressLine1-${address.id}`}>Address Line 1</Label>
-                        <Input
-                          id={`addressLine1-${address.id}`}
-                          value={editedAddress?.address_line_1 || ""}
-                          onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, address_line_1: e.target.value } : null)}
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor={`city-${address.id}`}>City</Label>
-                          <Input
-                            id={`city-${address.id}`}
-                            value={editedAddress?.city || ""}
-                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, city: e.target.value } : null)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`state-${address.id}`}>State</Label>
-                          <Input
-                            id={`state-${address.id}`}
-                            value={editedAddress?.state || ""}
-                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, state: e.target.value } : null)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`postalCode-${address.id}`}>Postal Code</Label>
-                          <Input
-                            id={`postalCode-${address.id}`}
-                            value={editedAddress?.postal_code || ""}
-                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, postal_code: e.target.value } : null)}
-                          />
+        .eq("user_
