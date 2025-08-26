@@ -35,7 +35,7 @@ export default function Auth() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent, isAdmin: boolean) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -44,7 +44,8 @@ export default function Auth() {
         formData.password,
         formData.firstName,
         formData.lastName,
-        formData.phone
+        formData.phone,
+        isAdmin
       );
       if (!error) {
         navigate("/");
@@ -147,9 +148,21 @@ export default function Auth() {
                 </Button>
               </div>
             ) : (
-              <Button type="submit" onClick={handleSignUp} className="w-full" disabled={loading}>
-                {loading ? "Please wait..." : "Create Account"}
-              </Button>
+              <div className="grid grid-cols-2 gap-4">
+                <Button 
+                  onClick={(e) => handleSignUp(e, false)}
+                  disabled={loading || !formData.email || !formData.password}
+                >
+                  {loading ? "Creating Account..." : "User Sign Up"}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={(e) => handleSignUp(e, true)}
+                  disabled={loading || !formData.email || !formData.password}
+                >
+                  {loading ? "Creating Account..." : "Admin Sign Up"}
+                </Button>
+              </div>
             )}
           </form>
 
