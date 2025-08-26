@@ -28,15 +28,12 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string, isAdmin: boolean = false) => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -44,11 +41,21 @@ export function useAuth() {
         }
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
       
+      if (data.user) {
+        // Assign role based on isAdmin flag
+        const role = isAdmin ? 'admin' : 'user';
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: data.user.id, role });
+        
+        if (roleError) throw roleError;
+      }
+
       toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link to complete your registration.",
+        title: "Account created!",
+        description: "You have been signed in successfully.",
       });
 
       return { error: null };
