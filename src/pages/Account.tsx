@@ -104,43 +104,30 @@ const Account = () => {
     if (!user) return;
 
     try {
-      // Build an update payload with only the changed values
-      const updatePayload: Partial<Profile> = {};
-      if (editData.firstName !== (profile?.first_name || "")) {
-        updatePayload.first_name = editData.firstName;
-      }
-      if (editData.lastName !== (profile?.last_name || "")) {
-        updatePayload.last_name = editData.lastName;
-      }
-      if (editData.phone !== (profile?.phone || "")) {
-        updatePayload.phone = editData.phone;
-      }
+      // Create a payload with all fields from the editData state
+      const updatePayload: Partial<Profile> = {
+        first_name: editData.firstName,
+        last_name: editData.lastName,
+        phone: editData.phone,
+      };
 
-      // Only perform an update if there are changes
-      if (Object.keys(updatePayload).length > 0) {
-        const { data, error } = await supabase
-          .from("profiles")
-          .update(updatePayload)
-          .eq("id", user.id)
-          .select();
+      const { data, error } = await supabase
+        .from("profiles")
+        .update(updatePayload)
+        .eq("id", user.id)
+        .select();
 
-        if (error) {
-          throw error;
-        }
-
-        setProfile(data[0] as Profile);
-        toast({
-          title: "Profile updated!",
-          description: "Your profile information has been saved.",
-        });
-      } else {
-        toast({
-          title: "No changes detected",
-          description: "Your profile is already up-to-date.",
-        });
+      if (error) {
+        throw error;
       }
 
+      setProfile(data[0] as Profile);
       setIsEditing(false);
+      toast({
+        title: "Profile updated!",
+        description: "Your profile information has been saved.",
+      });
+
     } catch (error) {
       console.error("Error saving profile:", error);
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
@@ -351,7 +338,17 @@ const Account = () => {
                     <div className="flex justify-end space-x-2">
                       {isEditing ? (
                         <>
-                          <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                          <Button variant="outline" onClick={() => {
+                            setIsEditing(false);
+                            // Reset editData to the current profile values on cancel
+                            if (profile) {
+                              setEditData({
+                                firstName: profile.first_name || "",
+                                lastName: profile.last_name || "",
+                                phone: profile.phone || "",
+                              });
+                            }
+                          }}>Cancel</Button>
                           <Button onClick={handleSaveProfile}>Save</Button>
                         </>
                       ) : (
