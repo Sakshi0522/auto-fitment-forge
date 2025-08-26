@@ -28,7 +28,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
@@ -52,10 +52,11 @@ export function useAuth() {
       });
 
       return { error: null };
-    } catch (error: any) {
+    } catch (error) { // No longer `error: any`
+      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
       toast({
         title: "Sign up failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
       return { error };
@@ -77,10 +78,11 @@ export function useAuth() {
       });
 
       return { error: null };
-    } catch (error: any) {
+    } catch (error) { // No longer `error: any`
+      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
       toast({
         title: "Sign in failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
       return { error };
@@ -97,10 +99,11 @@ export function useAuth() {
         title: "Signed out",
         description: "You have been signed out successfully.",
       });
-    } catch (error: any) {
+    } catch (error) { // No longer `error: any`
+      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
       toast({
         title: "Sign out failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
