@@ -17,6 +17,7 @@ export default function Auth() {
     password: '',
     firstName: '',
     lastName: '',
+    phone: '',
   });
 
   useEffect(() => {
@@ -31,7 +32,16 @@ export default function Auth() {
 
     try {
       if (mode === 'signup') {
-        await signUp(formData.email, formData.password, formData.firstName, formData.lastName);
+        const { error } = await signUp(
+          formData.email,
+          formData.password,
+          formData.firstName,
+          formData.lastName,
+          formData.phone,
+        );
+        if (!error) {
+          navigate('/');
+        }
       } else {
         await signIn(formData.email, formData.password);
       }
@@ -40,13 +50,18 @@ export default function Auth() {
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle>{mode === 'signup' ? 'Create Account' : 'Sign In'}</CardTitle>
           <CardDescription>
-            {mode === 'signup' 
+            {mode === 'signup'
               ? 'Create your account to start shopping'
               : 'Welcome back! Sign in to your account'
             }
@@ -54,57 +69,65 @@ export default function Auth() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                    required
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
-            )}
-            
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={handleInputChange}
                 required
               />
             </div>
             
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number (Optional)</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleInputChange}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                onChange={handleInputChange}
                 required
                 minLength={6}
               />
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Please wait...' : (mode === 'signup' ? 'Create Account' : 'Sign In')}
             </Button>
           </form>
-          
+
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
               {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
@@ -117,7 +140,7 @@ export default function Auth() {
               </Button>
             </p>
           </div>
-          
+
           <div className="mt-4 text-center">
             <Link to="/" className="text-sm text-primary hover:underline">
               ← Back to Home
