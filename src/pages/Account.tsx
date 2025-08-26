@@ -113,23 +113,22 @@ const Account = () => {
         .eq("id", user.id);
 
       if (error) throw error;
-
-      // Re-fetch profile to ensure UI is in sync with the database
-      const { data: updatedProfile, error: fetchError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-      
-      if (fetchError) throw fetchError;
-      
-      setProfile(updatedProfile as Profile);
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              first_name: editData.firstName,
+              last_name: editData.lastName,
+              phone: editData.phone,
+            }
+          : null
+      );
       setIsEditing(false);
       toast({
         title: "Profile updated!",
         description: "Your profile information has been saved.",
       });
-    } catch (error) { 
+    } catch (error) {
       console.error("Error saving profile:", error);
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
       toast({
@@ -161,148 +160,3 @@ const Account = () => {
     } catch (error) {
       console.error("Error saving address:", error);
       toast({
-        title: "Error",
-        description: "Failed to update address. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleAddNewAddress = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be signed in to add an address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!newAddressData.firstName || !newAddressData.lastName || !newAddressData.addressLine1 || !newAddressData.city || !newAddressData.state || !newAddressData.postalCode) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("addresses")
-        .insert({
-          user_id: user.id,
-          type: "shipping",
-          first_name: newAddressData.firstName,
-          last_name: newAddressData.lastName,
-          phone: newAddressData.phone,
-          address_line_1: newAddressData.addressLine1,
-          address_line_2: newAddressData.addressLine2,
-          city: newAddressData.city,
-          state: newAddressData.state,
-          postal_code: newAddressData.postalCode,
-          country: newAddressData.country,
-          is_default: addresses.length === 0,
-        });
-
-      if (error) {
-        throw error;
-      }
-const { data: addressesData, error: fetchError } = await supabase
-        .from("addresses")
-        .select("*")
-        .eq("user_id", user.id);
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      setAddresses(addressesData as Address[]);
-      setNewAddressData({
-        firstName: "",
-        lastName: "",
-        phone: "",
-        addressLine1: "",
-        addressLine2: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "US",
-      });
-      setIsAddingAddress(false);
-
-      toast({
-        title: "Address added!",
-        description: "Your new address has been saved.",
-      });
-    } catch (error) { 
-      console.error("Error adding new address:", error);
-      if (error instanceof Error) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to add new address. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const handleDeleteAddress = async (addressId: string) => {
-    try {
-      const { error } = await supabase
-        .from("addresses")
-        .delete()
-        .eq("id", addressId);
-
-      if (error) throw error;
-
-      setAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
-      toast({
-        title: "Address deleted!",
-        description: "The address has been removed from your account.",
-      });
-    } catch (error) { 
-      console.error("Error deleting address:", error);
-      if (error instanceof Error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete address. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  }
-  function renderProfile() {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>View and manage your personal details.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {loading ? (
-            <div className="flex items-center space-x-4">
-              <Skeleton className="h-12 w-12 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-[250px]" />
-                <Skeleton className="h-4 w-[200px]" />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback>{profile?.first_name?.[0]}{profile?.last_name?.[0]}</AvatarFallback>
-                </Avatar>
-                <div className="space-y-1">
-                  <p className="text-lg font-medium">{profile?.first_name} {profile?.last_name}</p>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
-                </div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    value={isEditing ? editData.firstName : profile?.first_name || ""}
-                    onChange={(e
