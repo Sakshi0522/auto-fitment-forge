@@ -43,12 +43,10 @@ export function useAuth() {
 
       if (signUpError) throw signUpError;
       
-      if (data.user) {
-        // Assign role based on isAdmin flag
-        const role = isAdmin ? 'admin' : 'user';
+      if (isAdmin && data.user) {
         const { error: roleError } = await supabase
           .from('user_roles')
-          .insert({ user_id: data.user.id, role });
+          .insert({ user_id: data.user.id, role: 'admin' });
         
         if (roleError) throw roleError;
       }
