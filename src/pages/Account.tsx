@@ -22,6 +22,7 @@ const Account = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState<string | null>(null);
   const [editedAddress, setEditedAddress] = useState<Address | null>(null);
@@ -120,6 +121,7 @@ const Account = () => {
       }
 
       setProfile(data[0] as Profile);
+      setIsEditing(false);
       toast({
         title: "Profile updated!",
         description: "Your profile information has been saved.",
@@ -300,34 +302,72 @@ const Account = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        value={editData.firstName}
-                        onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        value={editData.lastName}
-                        onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        value={editData.phone}
-                        onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                      />
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={handleResetProfile}>Reset</Button>
-                      <Button onClick={handleSaveProfile}>Save</Button>
-                    </div>
+                    {isEditing ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input
+                            id="firstName"
+                            value={editData.firstName}
+                            onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input
+                            id="lastName"
+                            value={editData.lastName}
+                            onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone</Label>
+                          <Input
+                            id="phone"
+                            value={editData.phone}
+                            onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => {
+                            setIsEditing(false);
+                            // Reset editData to the current profile values on cancel
+                            if (profile) {
+                              setEditData({
+                                firstName: profile.first_name || "",
+                                lastName: profile.last_name || "",
+                                phone: profile.phone || "",
+                              });
+                            }
+                          }}>Cancel</Button>
+                          <Button onClick={handleSaveProfile}>Save</Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label>First Name</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.first_name || "Not set"}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Name</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.last_name || "Not set"}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Phone</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.phone || "Not set"}
+                          </p>
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -419,202 +459,4 @@ const Account = () => {
             )}
             {loading ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardContent className="p-4">
-                      <div className="space-y-2">
-                        <Skeleton className="h-5 w-1/2" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : addresses.length === 0 ? (
-              <p className="text-muted-foreground text-center mt-8">
-                You have not added any addresses yet.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {addresses.map((address) => (
-                  <Card key={address.id}>
-                    <CardContent className="p-4">
-                      {isEditingAddress === address.id ? (
-                        <div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-firstName`}>First Name</Label>
-                              <Input
-                                id={`edit-${address.id}-firstName`}
-                                value={editedAddress?.first_name || ""}
-                                onChange={(e) => setEditedAddress({ ...editedAddress!, first_name: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-lastName`}>Last Name</Label>
-                              <Input
-                                id={`edit-${address.id}-lastName`}
-                                value={editedAddress?.last_name || ""}
-                                onChange={(e) => setEditedAddress({ ...editedAddress!, last_name: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-addressLine1`}>Address Line 1</Label>
-                              <Input
-                                id={`edit-${address.id}-addressLine1`}
-                                value={editedAddress?.address_line_1 || ""}
-                                onChange={(e) => setEditedAddress({ ...editedAddress!, address_line_1: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-addressLine2`}>Address Line 2 (Optional)</Label>
-                              <Input
-                                id={`edit-${address.id}-addressLine2`}
-                                value={editedAddress?.address_line_2 || ""}
-                                onChange={(e) => setEditedAddress({ ...editedAddress!, address_line_2: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-city`}>City</Label>
-                              <Input
-                                id={`edit-${address.id}-city`}
-                                value={editedAddress?.city || ""}
-                                onChange={(e) => setEditedAddress({ ...editedAddress!, city: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-state`}>State</Label>
-                              <Input
-                                id={`edit-${address.id}-state`}
-                                value={editedAddress?.state || ""}
-                                onChange={(e) => setEditedAddress({ ...editedAddress!, state: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-postalCode`}>Postal Code</Label>
-                              <Input
-                                id={`edit-${address.id}-postalCode`}
-                                value={editedAddress?.postal_code || ""}
-                                onChange={(e) => setEditedAddress({ ...editedAddress!, postal_code: e.target.value })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`edit-${address.id}-phone`}>Phone (Optional)</Label>
-                              <Input
-                                id={`edit-${address.id}-phone`}
-                                value={editedAddress?.phone || ""}
-                                onChange={(e) => setEditedAddress({ ...editedAddress!, phone: e.target.value })}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex justify-end space-x-2 mt-4">
-                            <Button variant="outline" onClick={() => setIsEditingAddress(null)}>Cancel</Button>
-                            <Button onClick={handleSaveAddress}>Save</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <h4 className="font-semibold">
-                              {address.first_name} {address.last_name}
-                            </h4>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setIsEditingAddress(address.id);
-                                  setEditedAddress(address);
-                                }}
-                              >
-                                Edit
-                              </Button>
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {address.address_line_1}
-                          </p>
-                          {address.address_line_2 && (
-                            <p className="text-sm text-muted-foreground">
-                              {address.address_line_2}
-                            </p>
-                          )}
-                          <p className="text-sm text-muted-foreground">
-                            {address.city}, {address.state} {address.postal_code}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {address.country}
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="orders" className="mt-4">
-            <h2 className="text-2xl font-bold mb-4">My Orders</h2>
-            {loading ? (
-              <div className="space-y-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardHeader>
-                      <div className="flex justify-between">
-                        <Skeleton className="h-5 w-1/4" />
-                        <Skeleton className="h-5 w-1/6" />
-                      </div>
-                      <Skeleton className="h-4 w-1/3" />
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : orders.length === 0 ? (
-              <p className="text-muted-foreground text-center mt-8">
-                You have not placed any orders yet.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {orders.map((order) => (
-                  <Card key={order.id}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-base font-medium">
-                        Order #{order.order_number}
-                      </CardTitle>
-                      <Badge variant="secondary">
-                        {order.status}
-                      </Badge>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        Date: {new Date(order.created_at).toLocaleDateString()}
-                      </p>
-                      <p className="text-xl font-bold mt-2">
-                        Total: ${order.total.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Items: {order.items.length}
-                      </p>
-                      <Button asChild variant="link" className="p-0 mt-2">
-                        <Link to={`/orders/${order.id}`}>View Details</Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </main>
-      <Footer />
-    </>
-  );
-};
-
-export default Account;
+                {Array.from({ length: 2 }).
