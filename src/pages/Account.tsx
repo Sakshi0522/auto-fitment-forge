@@ -22,7 +22,6 @@ const Account = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState<string | null>(null);
   const [editedAddress, setEditedAddress] = useState<Address | null>(null);
@@ -104,7 +103,6 @@ const Account = () => {
     if (!user) return;
 
     try {
-      // Create a payload with all fields from the editData state
       const updatePayload: Partial<Profile> = {
         first_name: editData.firstName,
         last_name: editData.lastName,
@@ -122,7 +120,6 @@ const Account = () => {
       }
 
       setProfile(data[0] as Profile);
-      setIsEditing(false);
       toast({
         title: "Profile updated!",
         description: "Your profile information has been saved.",
@@ -245,6 +242,16 @@ const Account = () => {
     }
   };
 
+  const handleResetProfile = () => {
+    if (profile) {
+      setEditData({
+        firstName: profile.first_name || "",
+        lastName: profile.last_name || "",
+        phone: profile.phone || "",
+      });
+    }
+  };
+
   return (
     <>
       <Header />
@@ -295,65 +302,31 @@ const Account = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      {isEditing ? (
-                        <Input
-                          id="firstName"
-                          value={editData.firstName}
-                          onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                        />
-                      ) : (
-                        <p className="border rounded-md p-2 bg-muted text-muted-foreground">
-                          {profile?.first_name || "Not set"}
-                        </p>
-                      )}
+                      <Input
+                        id="firstName"
+                        value={editData.firstName}
+                        onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      {isEditing ? (
-                        <Input
-                          id="lastName"
-                          value={editData.lastName}
-                          onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                        />
-                      ) : (
-                        <p className="border rounded-md p-2 bg-muted text-muted-foreground">
-                          {profile?.last_name || "Not set"}
-                        </p>
-                      )}
+                      <Input
+                        id="lastName"
+                        value={editData.lastName}
+                        onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone</Label>
-                      {isEditing ? (
-                        <Input
-                          id="phone"
-                          value={editData.phone}
-                          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                        />
-                      ) : (
-                        <p className="border rounded-md p-2 bg-muted text-muted-foreground">
-                          {profile?.phone || "Not set"}
-                        </p>
-                      )}
+                      <Input
+                        id="phone"
+                        value={editData.phone}
+                        onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                      />
                     </div>
                     <div className="flex justify-end space-x-2">
-                      {isEditing ? (
-                        <>
-                          <Button variant="outline" onClick={() => {
-                            setIsEditing(false);
-                            // Reset editData to the current profile values on cancel
-                            if (profile) {
-                              setEditData({
-                                firstName: profile.first_name || "",
-                                lastName: profile.last_name || "",
-                                phone: profile.phone || "",
-                              });
-                            }
-                          }}>Cancel</Button>
-                          <Button onClick={handleSaveProfile}>Save</Button>
-                        </>
-                      ) : (
-                        <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-                      )}
+                      <Button variant="outline" onClick={handleResetProfile}>Reset</Button>
+                      <Button onClick={handleSaveProfile}>Save</Button>
                     </div>
                   </div>
                 )}
