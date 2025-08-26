@@ -43,9 +43,9 @@ export function useAuth() {
 
       if (signUpError) throw signUpError;
       
+      // If the admin flag is set, use the RPC function to update the user's role.
+      // This is a secure way to change roles from the client-side.
       if (isAdmin && data.user) {
-        // Use the RPC function to securely update the user's role to 'admin'
-        // This is necessary because direct updates to the user_roles table might be blocked by RLS.
         const { error: roleError } = await supabase.rpc('update_user_role', { _user_id: data.user.id, _new_role: 'admin' });
         
         if (roleError) throw roleError;
@@ -130,26 +130,6 @@ export function useAuth() {
       });
     }
   };
-  
-  const updateUserRole = async (userId: string, newRole: string) => {
-    try {
-      const { error } = await supabase.rpc('update_user_role', { _user_id: userId, _new_role: newRole });
-      if (error) throw error;
-      toast({
-        title: "Role updated!",
-        description: `User role has been set to ${newRole}.`,
-      });
-      return { error: null };
-    } catch (error) {
-      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
-      toast({
-        title: "Failed to update role",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
 
   return {
     user,
@@ -158,6 +138,5 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
-    updateUserRole,
   };
 }
