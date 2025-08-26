@@ -22,6 +22,7 @@ const Account = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState<string | null>(null);
   const [editedAddress, setEditedAddress] = useState<Address | null>(null);
@@ -103,28 +104,43 @@ const Account = () => {
     if (!user) return;
 
     try {
-      const updatePayload: Partial<Profile> = {
-        first_name: editData.firstName,
-        last_name: editData.lastName,
-        phone: editData.phone,
-      };
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .update(updatePayload)
-        .eq("id", user.id)
-        .select();
-
-      if (error) {
-        throw error;
+      // Build an update payload with only the changed values
+      const updatePayload: Partial<Profile> = {};
+      if (editData.firstName !== (profile?.first_name || "")) {
+        updatePayload.first_name = editData.firstName;
+      }
+      if (editData.lastName !== (profile?.last_name || "")) {
+        updatePayload.last_name = editData.lastName;
+      }
+      if (editData.phone !== (profile?.phone || "")) {
+        updatePayload.phone = editData.phone;
       }
 
-      setProfile(data[0] as Profile);
-      toast({
-        title: "Profile updated!",
-        description: "Your profile information has been saved.",
-      });
+      // Only perform an update if there are changes
+      if (Object.keys(updatePayload).length > 0) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .update(updatePayload)
+          .eq("id", user.id)
+          .select();
 
+        if (error) {
+          throw error;
+        }
+
+        setProfile(data[0] as Profile);
+        toast({
+          title: "Profile updated!",
+          description: "Your profile information has been saved.",
+        });
+      } else {
+        toast({
+          title: "No changes detected",
+          description: "Your profile is already up-to-date.",
+        });
+      }
+
+      setIsEditing(false);
     } catch (error) {
       console.error("Error saving profile:", error);
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
@@ -242,16 +258,6 @@ const Account = () => {
     }
   };
 
-  const handleResetProfile = () => {
-    if (profile) {
-      setEditData({
-        firstName: profile.first_name || "",
-        lastName: profile.last_name || "",
-        phone: profile.phone || "",
-      });
-    }
-  };
-
   return (
     <>
       <Header />
@@ -300,34 +306,72 @@ const Account = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        value={editData.firstName}
-                        onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        value={editData.lastName}
-                        onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        value={editData.phone}
-                        onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                      />
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={handleResetProfile}>Reset</Button>
-                      <Button onClick={handleSaveProfile}>Save</Button>
-                    </div>
+                    {isEditing ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input
+                            id="firstName"
+                            value={editData.firstName}
+                            onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input
+                            id="lastName"
+                            value={editData.lastName}
+                            onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone</Label>
+                          <Input
+                            id="phone"
+                            value={editData.phone}
+                            onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => {
+                            setIsEditing(false);
+                            // Reset editData to the current profile values on cancel
+                            if (profile) {
+                              setEditData({
+                                firstName: profile.first_name || "",
+                                lastName: profile.last_name || "",
+                                phone: profile.phone || "",
+                              });
+                            }
+                          }}>Cancel</Button>
+                          <Button onClick={handleSaveProfile}>Save</Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label>First Name</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.first_name || "Not set"}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Name</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.last_name || "Not set"}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Phone</Label>
+                          <p className="border rounded-md p-2 bg-muted text-muted-foreground">
+                            {profile?.phone || "Not set"}
+                          </p>
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
