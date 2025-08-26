@@ -37,7 +37,7 @@ export default function Auth() {
           formData.password,
           formData.firstName,
           formData.lastName,
-          formData.phone,
+          formData.phone
         );
         if (!error) {
           navigate('/');
