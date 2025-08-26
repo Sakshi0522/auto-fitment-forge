@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
-import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -13,7 +12,6 @@ export default function Auth() {
   const { user, signIn, signUp } = useAuth();
   const [mode, setMode] = useState(searchParams.get("mode") === "signup" ? "signup" : "signin");
   const [loading, setLoading] = useState(false);
-  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -28,24 +26,28 @@ export default function Auth() {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (isAdmin: boolean) => {
+    setLoading(true);
+    try {
+      await signIn(formData.email, formData.password, isAdmin);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      if (mode === "signup") {
-        const { error } = await signUp(
-          formData.email,
-          formData.password,
-          formData.firstName,
-          formData.lastName,
-          formData.phone
-        );
-        if (!error) {
-          navigate("/");
-        }
-      } else {
-        await signIn(formData.email, formData.password, isAdminLogin);
+      const { error } = await signUp(
+        formData.email,
+        formData.password,
+        formData.firstName,
+        formData.lastName,
+        formData.phone
+      );
+      if (!error) {
+        navigate("/");
       }
     } finally {
       setLoading(false);
@@ -70,7 +72,7 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form className="space-y-4">
             {mode === "signup" && (
               <>
                 <div className="grid grid-cols-2 gap-4">
@@ -93,7 +95,6 @@ export default function Auth() {
                     />
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number (Optional)</Label>
                   <Input
@@ -129,20 +130,27 @@ export default function Auth() {
               />
             </div>
             
-            {mode === "signin" && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isAdmin"
-                  checked={isAdminLogin}
-                  onCheckedChange={(checked) => setIsAdminLogin(Boolean(checked))}
-                />
-                <Label htmlFor="isAdmin">Admin Login</Label>
+            {mode === "signin" ? (
+              <div className="grid grid-cols-2 gap-4">
+                <Button 
+                  onClick={() => handleLogin(false)}
+                  disabled={loading || !formData.email || !formData.password}
+                >
+                  {loading ? "Signing In..." : "User Sign In"}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleLogin(true)}
+                  disabled={loading || !formData.email || !formData.password}
+                >
+                  {loading ? "Signing In..." : "Admin Sign In"}
+                </Button>
               </div>
+            ) : (
+              <Button type="submit" onClick={handleSignUp} className="w-full" disabled={loading}>
+                {loading ? "Please wait..." : "Create Account"}
+              </Button>
             )}
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Please wait..." : (mode === "signup" ? "Create Account" : "Sign In")}
-            </Button>
           </form>
 
           <div className="mt-4 text-center">
