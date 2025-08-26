@@ -127,10 +127,8 @@ const Account = () => {
         if (error) {
           throw error;
         }
-        
-        // Use the returned data to update the state, which guarantees consistency
+
         setProfile(data[0] as Profile);
-        
         toast({
           title: "Profile updated!",
           description: "Your profile information has been saved.",
@@ -208,3 +206,18 @@ const Account = () => {
           user_id: user.id,
           type: "shipping",
           first_name: newAddressData.firstName,
+          last_name: newAddressData.lastName,
+          phone: newAddressData.phone,
+          address_line_1: newAddressData.addressLine1,
+          address_line_2: newAddressData.addressLine2,
+          city: newAddressData.city,
+          state: newAddressData.state,
+          postal_code: newAddressData.postalCode,
+          country: newAddressData.country,
+          is_default: addresses.length === 0,
+        });
+
+      if (error) {
+        throw error;
+      }
+      const { data: addressesData, error: fetch
