@@ -62,6 +62,53 @@ export function useAuth() {
     }
   };
 
+  const signUpAsAdmin = async (email: string, password: string, firstName?: string, lastName?: string) => {
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          }
+        }
+      });
+
+      if (signUpError) {
+        throw signUpError;
+      }
+      
+      if (data.user) {
+        // After successful sign-up, manually insert the admin role.
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: data.user.id, role: 'admin' });
+
+        if (roleError) {
+          // Log out the user if role assignment fails
+          await supabase.auth.signOut();
+          throw roleError;
+        }
+      }
+
+      toast({
+        title: "Admin account created!",
+        description: "You have been signed in successfully as an admin.",
+      });
+
+      return { error: null };
+    } catch (error) {
+      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
+      toast({
+        title: "Admin sign up failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   const signIn = async (email: string, password: string, isAdminLogin: boolean = false) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -154,6 +201,7 @@ export function useAuth() {
     session,
     loading,
     signUp,
+    signUpAsAdmin,
     signIn,
     signOut,
   };
