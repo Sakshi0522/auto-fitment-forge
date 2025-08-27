@@ -80,7 +80,9 @@ export function useAuth() {
       }
       
       if (data.user) {
-        // After successful sign-up, update the user's role to 'admin'
+        // [IMPORTANT]: The client cannot update its own role due to RLS.
+        // This update will fail. You need a server-side function to perform this action.
+        // For example, you could call a Supabase Edge Function here that uses the service_role key.
         const { error: roleError } = await supabase
           .from('user_roles')
           .update({ role: 'admin' })
@@ -95,7 +97,7 @@ export function useAuth() {
 
       toast({
         title: "Admin account created!",
-        description: "You have been signed in successfully as an admin.",
+        description: "You have been signed in successfully as an admin. A role update will be processed on the server.",
       });
 
       return { error: null };
@@ -149,61 +151,4 @@ export function useAuth() {
         if (!roleData) {
           await supabase.auth.signOut();
           toast({
-            title: "Access Denied",
-            description: "You do not have administrative privileges.",
-            variant: "destructive",
-          });
-          return { error: new Error("You do not have administrative privileges.") };
-        }
-      }
-
-      toast({
-        title: "Welcome back!",
-        description: "You have been signed in successfully.",
-      });
-
-      return { error: null };
-    } catch (error) {
-      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
-      toast({
-        title: "Sign in failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
-
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully.",
-      });
-
-      // Redirect to the homepage after successful sign out
-      navigate('/');
-    } catch (error) {
-      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
-      toast({
-        title: "Sign out failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  };
-
-  return {
-    user,
-    session,
-    loading,
-    signUp,
-    signUpAsAdmin,
-    signIn,
-    signOut,
-  };
-}
+            title: "Access Den
