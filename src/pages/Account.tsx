@@ -53,29 +53,14 @@ const Account = () => {
             .from("profiles")
             .select("*")
             .eq("id", user.id)
-            .maybeSingle();
+            .single();
 
           if (profileError) throw profileError;
-
-          let currentProfile = profileData as Profile | null;
-
-          if (!currentProfile) {
-            // If no profile found, create a new one
-            const { data: newProfileData, error: newProfileError } = await supabase
-              .from("profiles")
-              .insert({ id: user.id })
-              .select()
-              .single();
-
-            if (newProfileError) throw newProfileError;
-            currentProfile = newProfileData as Profile;
-          }
-          
-          setProfile(currentProfile);
+          setProfile(profileData as Profile);
           setEditData({
-            firstName: currentProfile?.first_name || "",
-            lastName: currentProfile?.last_name || "",
-            phone: currentProfile?.phone || "",
+            firstName: profileData.first_name || "",
+            lastName: profileData.last_name || "",
+            phone: profileData.phone || "",
           });
 
           // Fetch addresses
@@ -255,6 +240,16 @@ const Account = () => {
         title: "Error",
         description: `Failed to add address: ${errorMessage}`,
         variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetProfile = () => {
+    if (profile) {
+      setEditData({
+        firstName: profile.first_name || "",
+        lastName: profile.last_name || "",
+        phone: profile.phone || "",
       });
     }
   };
