@@ -1,8 +1,5 @@
-import { useState, useEffect } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+// src/hooks/useAuth.ts
+// ... (existing imports)
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -11,7 +8,6 @@ export function useAuth() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -20,7 +16,6 @@ export function useAuth() {
       }
     );
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -83,11 +78,7 @@ export function useAuth() {
       // Check for admin role if the flag is set
       if (isAdminLogin && data.user) {
         const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
+          .rpc('has_role', { _user_id: data.user.id, _role: 'admin' });
 
         if (roleError) {
           toast({
@@ -137,7 +128,6 @@ export function useAuth() {
         description: "You have been signed out successfully.",
       });
 
-      // Redirect to the homepage after successful sign out
       navigate('/');
     } catch (error) {
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
