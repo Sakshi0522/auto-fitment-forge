@@ -53,14 +53,14 @@ const Account = () => {
             .from("profiles")
             .select("*")
             .eq("id", user.id)
-            .single();
+            .maybeSingle(); // Changed to maybeSingle()
 
           if (profileError) throw profileError;
           setProfile(profileData as Profile);
           setEditData({
-            firstName: profileData.first_name || "",
-            lastName: profileData.last_name || "",
-            phone: profileData.phone || "",
+            firstName: profileData?.first_name || "",
+            lastName: profileData?.last_name || "",
+            phone: profileData?.phone || "",
           });
 
           // Fetch addresses
