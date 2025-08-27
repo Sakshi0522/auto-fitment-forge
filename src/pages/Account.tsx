@@ -53,15 +53,38 @@ const Account = () => {
             .from("profiles")
             .select("*")
             .eq("id", user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError) throw profileError;
-          setProfile(profileData as Profile);
-          setEditData({
-            firstName: profileData.first_name || "",
-            lastName: profileData.last_name || "",
-            phone: profileData.phone || "",
-          });
+          if (profileData) {
+            setProfile(profileData as Profile);
+            setEditData({
+              firstName: profileData.first_name || "",
+              lastName: profileData.last_name || "",
+              phone: profileData.phone || "",
+            });
+          } else {
+            // Create profile if it doesn't exist
+            const { data: newProfile, error: createError } = await supabase
+              .from("profiles")
+              .insert({
+                id: user.id,
+                first_name: "",
+                last_name: "",
+                phone: "",
+              })
+              .select()
+              .single();
+
+            if (createError) throw createError;
+            
+            setProfile(newProfile as Profile);
+            setEditData({
+              firstName: "",
+              lastName: "",
+              phone: "",
+            });
+          }
 
           // Fetch addresses
           const { data: addressesData, error: addressesError } = await supabase
