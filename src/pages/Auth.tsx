@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast"; // Import toast for feedback
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp, signUpAsAdmin } = useAuth();
   const [mode, setMode] = useState(searchParams.get("mode") === "signup" ? "signup" : "signin");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -60,16 +60,15 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      // You'll need to create a new function in `useAuth.ts` for this purpose
-      // For now, we will simulate it with a toast message and the existing signUp function.
-      toast({
-        title: "Admin sign up is not yet implemented.",
-        description: "Please use the regular sign up for now.",
-        variant: "destructive"
-      });
-      // In a real application, you would have a separate backend function
-      // that not only creates the user but also assigns them the 'admin' role.
-      // await signUpAsAdmin(formData.email, formData.password, formData.firstName, formData.lastName, formData.phone);
+      const { error } = await signUpAsAdmin(
+        formData.email,
+        formData.password,
+        formData.firstName,
+        formData.lastName
+      );
+      if (!error) {
+        navigate("/");
+      }
     } finally {
       setLoading(false);
     }
