@@ -80,10 +80,11 @@ export function useAuth() {
       }
       
       if (data.user) {
-        // After successful sign-up, manually insert the admin role.
+        // After successful sign-up, update the user's role to 'admin'
         const { error: roleError } = await supabase
           .from('user_roles')
-          .insert({ user_id: data.user.id, role: 'admin' });
+          .update({ role: 'admin' })
+          .eq('user_id', data.user.id);
 
         if (roleError) {
           // Log out the user if role assignment fails
