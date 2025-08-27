@@ -4,6 +4,22 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+// A new function to call your backend for role updates.
+// You must implement this function on your server (e.g., Supabase Edge Function).
+// The URL should point to your deployed function.
+const updateUserRole = async (userId: string, role: string) => {
+  const response = await fetch('/api/updateUserRole', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ userId, role }),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to update user role on the server.');
+  }
+};
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -11,7 +27,6 @@ export function useAuth() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -20,7 +35,6 @@ export function useAuth() {
       }
     );
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -32,7 +46,7 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string) => {
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -80,24 +94,13 @@ export function useAuth() {
       }
       
       if (data.user) {
-        // [IMPORTANT]: The client cannot update its own role due to RLS.
-        // This update will fail. You need a server-side function to perform this action.
-        // For example, you could call a Supabase Edge Function here that uses the service_role key.
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .update({ role: 'admin' })
-          .eq('user_id', data.user.id);
-
-        if (roleError) {
-          // Log out the user if role assignment fails
-          await supabase.auth.signOut();
-          throw roleError;
-        }
+        // [CORRECTED]: Now calling a backend function to update the role.
+        await updateUserRole(data.user.id, 'admin');
       }
 
       toast({
         title: "Admin account created!",
-        description: "You have been signed in successfully as an admin. A role update will be processed on the server.",
+        description: "You have been signed in successfully. The admin role is being assigned.",
       });
 
       return { error: null };
@@ -120,7 +123,6 @@ export function useAuth() {
       });
 
       if (error) {
-        // Return a detailed error message from the Supabase API call.
         const errorMessage = error.message || "An unknown error occurred.";
         toast({
           title: "Sign in failed",
@@ -130,7 +132,6 @@ export function useAuth() {
         return { error };
       }
 
-      // Check for admin role if the flag is set
       if (isAdminLogin && data.user) {
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
@@ -151,4 +152,60 @@ export function useAuth() {
         if (!roleData) {
           await supabase.auth.signOut();
           toast({
-            title: "Access Den
+            title: "Access Denied",
+            description: "You do not have administrative privileges.",
+            variant: "destructive",
+          });
+          return { error: new Error("You do not have administrative privileges.") };
+        }
+      }
+
+      toast({
+        title: "Welcome back!",
+        description: "You have been signed in successfully.",
+      });
+
+      return { error: null };
+    } catch (error) {
+      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
+      toast({
+        title: "Sign in failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully.",
+      });
+
+      navigate('/');
+    } catch (error) {
+      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred";
+      toast({
+        title: "Sign out failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  return {
+    user,
+    session,
+    loading,
+    signUp,
+    signUpAsAdmin,
+    signIn,
+    signOut,
+  };
+}
