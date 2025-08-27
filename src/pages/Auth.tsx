@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast"; // Import toast for feedback
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -49,6 +50,26 @@ export default function Auth() {
       if (!error) {
         navigate("/");
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // New function to handle admin sign up
+  const handleAdminSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      // You'll need to create a new function in `useAuth.ts` for this purpose
+      // For now, we will simulate it with a toast message and the existing signUp function.
+      toast({
+        title: "Admin sign up is not yet implemented.",
+        description: "Please use the regular sign up for now.",
+        variant: "destructive"
+      });
+      // In a real application, you would have a separate backend function
+      // that not only creates the user but also assigns them the 'admin' role.
+      // await signUpAsAdmin(formData.email, formData.password, formData.firstName, formData.lastName, formData.phone);
     } finally {
       setLoading(false);
     }
@@ -147,9 +168,14 @@ export default function Auth() {
                 </Button>
               </div>
             ) : (
-              <Button type="submit" onClick={handleSignUp} className="w-full" disabled={loading}>
-                {loading ? "Creating Account..." : "Sign Up"}
-              </Button>
+              <div className="grid grid-cols-2 gap-4">
+                <Button type="submit" onClick={handleSignUp} className="w-full" disabled={loading}>
+                  {loading ? "Creating User..." : "User Sign Up"}
+                </Button>
+                <Button type="submit" variant="outline" onClick={handleAdminSignUp} className="w-full" disabled={loading}>
+                  {loading ? "Creating Admin..." : "Admin Sign Up"}
+                </Button>
+              </div>
             )}
           </form>
 
