@@ -102,6 +102,7 @@ const Account = () => {
 
   const handleSaveProfile = async () => {
     if (!user) return;
+
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -110,9 +111,13 @@ const Account = () => {
           last_name: editData.lastName,
           phone: editData.phone,
         })
-        .eq("id", user.id).select();
+        .eq("id", user.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
       setProfile(data[0] as Profile);
       setIsEditing(false);
       toast({
@@ -388,4 +393,161 @@ const Account = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="newCity">City</Label>
-                    <Input id="newCity" value={new
+                    <Input id="newCity" value={newAddressData.city} onChange={(e) => setNewAddressData({ ...newAddressData, city: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newState">State</Label>
+                    <Input id="newState" value={newAddressData.state} onChange={(e) => setNewAddressData({ ...newAddressData, state: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPostalCode">Postal Code</Label>
+                    <Input id="newPostalCode" value={newAddressData.postalCode} onChange={(e) => setNewAddressData({ ...newAddressData, postalCode: e.target.value })} required />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button type="submit">Save Address</Button>
+                </div>
+              </form>
+            )}
+            {addresses.length > 0 ? (
+              addresses.map((address) => (
+                <div key={address.id} className="border p-4 rounded-lg space-y-1">
+                  {isEditingAddress === address.id ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor={`addressLine1-${address.id}`}>Address Line 1</Label>
+                        <Input
+                          id={`addressLine1-${address.id}`}
+                          value={editedAddress?.address_line_1 || ""}
+                          onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, address_line_1: e.target.value } : null)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`city-${address.id}`}>City</Label>
+                          <Input
+                            id={`city-${address.id}`}
+                            value={editedAddress?.city || ""}
+                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, city: e.target.value } : null)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`state-${address.id}`}>State</Label>
+                          <Input
+                            id={`state-${address.id}`}
+                            value={editedAddress?.state || ""}
+                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, state: e.target.value } : null)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`postalCode-${address.id}`}>Postal Code</Label>
+                          <Input
+                            id={`postalCode-${address.id}`}
+                            value={editedAddress?.postal_code || ""}
+                            onChange={(e) => setEditedAddress((prev) => prev ? { ...prev, postal_code: e.target.value } : null)}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2 mt-4">
+                        <Button variant="outline" onClick={() => {
+                          setIsEditingAddress(null);
+                          setEditedAddress(null);
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSaveAddress}>Save</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold">{address.first_name} {address.last_name}</p>
+                      <p>{address.address_line_1}</p>
+                      {address.address_line_2 && <p>{address.address_line_2}</p>}
+                      <p>{address.city}, {address.state} {address.postal_code}</p>
+                      <p>{address.country}</p>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setIsEditingAddress(address.id);
+                          setEditedAddress(address);
+                        }}>
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteAddress(address.id)}
+                          disabled={addresses.length === 1}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground">No addresses found.</p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderOrderHistory = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Order History</CardTitle>
+        <CardDescription>View your past orders and their status.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        ) : orders.length > 0 ? (
+          orders.map((order) => (
+            <div key={order.id} className="border p-4 rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="font-semibold">Order #{order.order_number}</h4>
+                <Badge variant="secondary">{order.status}</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">Total: ${order.total.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">Date: {new Date(order.created_at).toLocaleDateString()}</p>
+            </div>
+          ))
+        ) : (
+          <p className="text-muted-foreground">No orders found.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">My Account</h1>
+          <Link to="/" className="text-sm text-primary hover:underline">
+            ← Back to Home
+          </Link>
+        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="addresses">Addresses</TabsTrigger>
+            <TabsTrigger value="orders">Order History</TabsTrigger>
+          </TabsList>
+          <TabsContent value="profile">{renderProfile()}</TabsContent>
+          <TabsContent value="addresses">{renderAddresses()}</TabsContent>
+          <TabsContent value="orders">{renderOrderHistory()}</TabsContent>
+        </Tabs>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default Account;
