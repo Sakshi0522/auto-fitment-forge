@@ -104,7 +104,6 @@ const Account = () => {
     if (!user) return;
 
     try {
-      // First, update the profile data in the database
       const { data, error } = await supabase
         .from("profiles")
         .update({
@@ -121,10 +120,7 @@ const Account = () => {
       }
       
       if (data && data.length > 0) {
-        // If the database update is successful, update the local profile state with the new data
         setProfile(data[0] as Profile);
-        
-        // Reset the editData state to match the new profile data
         setEditData({
           firstName: data[0].first_name || "",
           lastName: data[0].last_name || "",
