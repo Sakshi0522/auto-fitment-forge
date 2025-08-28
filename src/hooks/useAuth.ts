@@ -1,21 +1,33 @@
 import { useState, useEffect } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-// [CORRECTED]: Now calling a Supabase Edge Function to update the role.
+// [CORRECTED]: Use the full Supabase URL for the Edge Function call.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
 const updateUserRole = async (userId: string, role: string) => {
-  const response = await fetch('/functions/v1/update-user-role', {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/update-user-role`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      // Include the Authorization header with the service_role key.
+      // This is necessary to access the function from the frontend.
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
     body: JSON.stringify({ userId, role }),
   });
+  
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to update user role on the server.');
+    let errorText = await response.text();
+    try {
+      const errorData = JSON.parse(errorText);
+      errorText = errorData.error;
+    } catch (e) {
+      // If the response is not valid JSON, we'll use the plain text.
+    }
+    throw new Error(errorText || 'Failed to update user role on the server.');
   }
 };
 
@@ -93,13 +105,12 @@ export function useAuth() {
       }
       
       if (data.user) {
-        // [CORRECTED]: Now calling a backend function to update the role.
         await updateUserRole(data.user.id, 'admin');
       }
 
       toast({
         title: "Admin account created!",
-        description: "You have been signed in successfully. The admin role is being assigned.",
+        description: "You have been signed in successfully. The admin role is being assigned. Please sign in again to activate.",
       });
 
       return { error: null };
