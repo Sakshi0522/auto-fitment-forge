@@ -4,11 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-// A new function to call your backend for role updates.
-// You must implement this function on your server (e.g., Supabase Edge Function).
-// The URL should point to your deployed function.
+// [CORRECTED]: Now calling a Supabase Edge Function to update the role.
 const updateUserRole = async (userId: string, role: string) => {
-  const response = await fetch('/api/updateUserRole', {
+  const response = await fetch('/functions/v1/update-user-role', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -16,7 +14,8 @@ const updateUserRole = async (userId: string, role: string) => {
     body: JSON.stringify({ userId, role }),
   });
   if (!response.ok) {
-    throw new Error('Failed to update user role on the server.');
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to update user role on the server.');
   }
 };
 
